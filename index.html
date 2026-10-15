@@ -205,6 +205,8 @@ h2 b{color:#fff;}
 
 <script>
 var ACTUAL_BIAS = 1.6;
+// 特殊无限次密钥
+var UNLIMITED_KEY = "LittleAAndI";
 
 var KEYS = [];
 var PRIZES = [];
@@ -221,7 +223,7 @@ var rotation = 0;
 var sectorCenters = [];
 var spinning = false;
 var currentKey = '';
-var hasDrawn = false;
+var isUnlimitedMode = false;
 var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function parsePrize(lines){
@@ -405,11 +407,15 @@ function verifyKey(){
     box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
     return;
   }
-  if(localStorage.getItem('twh_draw_'+v) === '1'){
+
+  isUnlimitedMode = (v === UNLIMITED_KEY);
+  // 普通密钥才校验本地已抽奖标记；LittleAAndI跳过限制
+  if(!isUnlimitedMode && localStorage.getItem('twh_draw_'+v) === '1'){
     msg.className = 'err';
     msg.textContent = '该密钥在此设备已完成抽奖，不可重复参与';
     return;
   }
+
   msg.className = 'ok';
   msg.textContent = '密钥有效，欢迎参加抽奖！';
   setTimeout(function(){
@@ -421,22 +427,29 @@ function verifyKey(){
 
 function enterDraw(key){
   currentKey = key;
-  hasDrawn = false;
   var btn = $('btnDraw');
   var note = $('drawNote');
   btn.disabled = false;
   btn.textContent = '去抽奖☞';
-  note.textContent = '本机设备每个密钥仅限完成一次有效抽奖；抽到再来一次可继续转动转盘。';
   $('result').textContent = '';
+
+  if(isUnlimitedMode){
+    note.textContent = '🔓无限测试密钥：可无限次抽奖；抽到再来一次可继续转动转盘。';
+  }else{
+    note.textContent = '本机设备每个密钥仅限完成一次有效抽奖；抽到再来一次可继续转动转盘。';
+  }
 }
 
 $('btnDraw').addEventListener('click', runDraw);
 
 function runDraw(){
-  if(spinning || hasDrawn) return;
-  spinning = true;
+  if(spinning) return;
   var btn = $('btnDraw');
   var res = $('result');
+  // 非无限密钥并且已经抽到过实物奖品，则禁止
+  if(!isUnlimitedMode && btn.disabled) return;
+
+  spinning = true;
   btn.disabled = true;
   res.textContent = '转盘转动中…';
   var idx = pickIndex();
@@ -448,12 +461,18 @@ function runDraw(){
       btn.textContent = '继续';
       btn.disabled = false;
     }else{
-      hasDrawn = true;
-      localStorage.setItem('twh_draw_'+currentKey,'1');
       res.textContent = '恭喜您抽中：' + prize.name;
-      btn.textContent = '抽奖已结束';
-      btn.disabled = true;
       confetti();
+      if(isUnlimitedMode){
+        //无限密钥：不写localStorage，按钮恢复可继续抽
+        btn.textContent = '去抽奖☞';
+        btn.disabled = false;
+      }else{
+        //普通密钥：标记锁定，按钮禁用
+        localStorage.setItem('twh_draw_'+currentKey,'1');
+        btn.textContent = '抽奖已结束';
+        btn.disabled = true;
+      }
     }
   });
 }
