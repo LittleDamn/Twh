@@ -73,7 +73,7 @@ body{
 }
 .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b3541e, 0 8px 14px rgba(0,0,0,.3);}
 .btn:disabled{filter:grayscale(.75);cursor:not-allowed;opacity:.75;}
-.btn:focus-visible,.lg-item:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+.btn:focus-visible,.lg-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 #keyMsg{margin-top:2px;font-size:14px;min-height:20px;text-align:center;}
 .err{color:var(--err);}
 .ok{color:var(--ok);}
@@ -105,24 +105,6 @@ h2 b{color:#fff;}
 .lg-item .p{color:var(--gold);font-weight:800;white-space:nowrap;}
 #result{min-height:26px;font-size:20px;font-weight:800;color:var(--gold);text-align:center;line-height:1.6;}
 #drawNote{font-size:13px;color:var(--muted);text-align:center;line-height:1.7;}
-details{
-  width:100%;background:#241b16;border:1px dashed var(--panel-line);
-  border-radius:12px;padding:10px 14px;font-size:13px;color:var(--muted);
-}
-summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
-.admin-note{font-size:13px;margin:8px 0;line-height:1.7;}
-.bar-row{margin:8px 0;}
-.bar-label{display:flex;justify-content:space-between;gap:6px;font-size:13px;margin-bottom:3px;color:#d8c3a8;}
-.bar-track{background:#16110e;border-radius:6px;height:11px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:6px;min-width:0;}
-.bar-fill.show{background:var(--gold);}
-.bar-fill.act{background:var(--red);}
-.opt-row{display:flex;gap:10px;margin-top:10px;}
-.link-btn{
-  flex:1;background:transparent;border:1px solid var(--panel-line);color:var(--muted);
-  border-radius:9px;padding:8px 6px;font-size:12px;cursor:pointer;font-family:inherit;
-}
-.link-btn:hover{color:var(--gold);border-color:var(--gold);}
 .shake{animation:shake .4s;}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}50%{transform:translateX(9px)}75%{transform:translateX(-5px)}}
 .confetti{position:fixed;width:10px;height:14px;top:-24px;z-index:99;pointer-events:none;border-radius:2px;animation:fall linear forwards;}
@@ -135,7 +117,6 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
 </style>
 </head>
 <body>
-<!-- ================= 视图一：密钥校验 ================= -->
 <div id="screenKey" class="screen">
   <div class="card">
     <div class="logo">TWH<span class="th">系列漫画 · 读者福利</span></div>
@@ -148,7 +129,6 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
   </div>
 </div>
 
-<!-- ================= 视图二：抽奖转盘 ================= -->
 <div id="screenDraw" class="screen hidden">
   <div class="card">
     <h2>感谢您阅读 <b>TWH 系列漫画</b><br>参与幸运抽奖！</h2>
@@ -161,23 +141,10 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
     <div id="result"></div>
     <div id="drawNote"></div>
     <div class="legend" id="legend"></div>
-    <details>
-      <summary>概率设置（管理员查看）</summary>
-      <div class="admin-note" id="adminNote"></div>
-      <div id="adminBars"></div>
-      <div class="opt-row">
-      </div>
-    </details>
   </div>
 </div>
 
 <script>
-/* ================================================================
- * 数据来源（读不到文件直接报错，无内置兜底）
- *   password.txt —— 每一行一个有效密钥，永久有效，不限次数
- *   prize.txt    —— 第一行是奖项个数 N；之后每行一个奖项
- *   ✅ 奖项名称：再来一次，抽到提示，点击继续按钮重抽
- * ================================================================ */
 var ACTUAL_BIAS = 1.6;
 
 var KEYS = [];
@@ -195,6 +162,7 @@ var rotation = 0;
 var sectorCenters = [];
 var spinning = false;
 var currentKey = '';
+var hasDrawn = false; //标记该密钥是否已经完成有效抽奖（排除再来一次）
 var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function parsePrize(lines){
@@ -253,12 +221,9 @@ function loadData(){
     .then(function(){
       buildActual();
       renderLegend();
-      renderAdmin();
       drawWheel();
     });
 }
-
-function pct(v){ return (v*100).toFixed(v*100 < 1 ? 2 : 1) + '%'; }
 
 function renderLegend(){
   var el = $('legend');
@@ -275,42 +240,19 @@ function renderLegend(){
   });
 }
 
-function renderAdmin(){
-  var note = $('adminNote');
-  var info = '偏置系数 ACTUAL_BIAS = ' + ACTUAL_BIAS + '；抽到【再来一次】，点击按钮继续抽奖';
-  if(DECLARED && DECLARED !== PRIZES.length) info += '；prize.txt 首行声明 ' + DECLARED + ' 个，实际读取 ' + PRIZES.length + ' 个，以实际为准';
-  note.textContent = info;
-  var bars = $('adminBars');
-  bars.innerHTML = '';
-  PRIZES.forEach(function(p,i){
-    var disp = p.prob, act = ACTUAL[i]*100;
-    var row = document.createElement('div');
-    row.className = 'bar-row';
-    var lab = document.createElement('div');
-    lab.className = 'bar-label';
-    var nm = document.createElement('span'); nm.textContent = p.name;
-    var vals = document.createElement('span'); vals.textContent = '公示 ' + disp + '% ｜ 实际 ' + act.toFixed(2) + '%';
-    lab.appendChild(nm); lab.appendChild(vals);
-    var tr = document.createElement('div'); tr.className = 'bar-track';
-    var f1 = document.createElement('div'); f1.className = 'bar-fill show'; f1.style.width = Math.max(disp,0.4) + '%';
-    var f2 = document.createElement('div'); f2.className = 'bar-fill act'; f2.style.width = Math.max(act,0.4) + '%';
-    tr.appendChild(f1); tr.appendChild(f2);
-    row.appendChild(lab); row.appendChild(tr);
-    bars.appendChild(row);
-  });
-}
-
 function drawWheel(){
   ctx.clearRect(0,0,wheel.width,wheel.height);
   ctx.save();
   ctx.translate(CX,CY);
   ctx.rotate(rotation);
   ctx.translate(-CX,-CY);
-  var total = PRIZES.reduce(function(a,p){return a+p.prob;},0) || 1;
+
+  var n = PRIZES.length;
+  var sweep = TWO_PI / n;
   var start = 0;
   sectorCenters = [];
+
   PRIZES.forEach(function(p,i){
-    var sweep = (p.prob/total)*TWO_PI;
     ctx.beginPath();
     ctx.moveTo(CX,CY);
     ctx.arc(CX,CY,R,start,start+sweep);
@@ -320,8 +262,10 @@ function drawWheel(){
     ctx.strokeStyle = 'rgba(30,18,8,.45)';
     ctx.lineWidth = 3;
     ctx.stroke();
+
     var mid = start + sweep/2;
     sectorCenters.push(mid);
+
     ctx.save();
     ctx.translate(CX,CY);
     ctx.rotate(mid);
@@ -329,13 +273,15 @@ function drawWheel(){
     ctx.fillStyle = '#fff';
     ctx.shadowColor = 'rgba(0,0,0,.55)';
     ctx.shadowBlur = 6;
-    var fs = PRIZES.length > 8 ? 24 : 32;
+    var fs = n > 8 ? 24 : 32;
     ctx.font = 'bold ' + fs + 'px "PingFang SC","Microsoft YaHei",sans-serif';
     var short = p.name.length > 8 ? p.name.slice(0,8)+'…' : p.name;
-    ctx.fillText(short + ' ' + p.prob + '%', R-20, 11);
+    ctx.fillText(short, R-20, 11);
     ctx.restore();
+
     start += sweep;
   });
+
   ctx.restore();
   ctx.beginPath(); ctx.arc(CX,CY,R+4,0,TWO_PI);
   ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 12; ctx.stroke();
@@ -393,36 +339,43 @@ function verifyKey(){
   var v = $('keyInput').value.trim();
   var msg = $('keyMsg');
   if(!v){ msg.className = 'err'; msg.textContent = '请输入密钥'; return; }
-  if(KEYS.indexOf(v) !== -1){
-    msg.className = 'ok';
-    msg.textContent = '密钥有效，欢迎参加抽奖！';
-    setTimeout(function(){
-      $('screenKey').classList.add('hidden');
-      $('screenDraw').classList.remove('hidden');
-      enterDraw(v);
-    }, 420);
-  }else{
+  if(KEYS.indexOf(v) === -1){
     msg.className = 'err';
     msg.textContent = '密钥无效，请检查后重试';
     var box = $('keyInput');
     box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    return;
   }
+  // 判断本机设备该密钥是否已经抽过
+  if(localStorage.getItem('twh_draw_'+v) === '1'){
+    msg.className = 'err';
+    msg.textContent = '该密钥在此设备已完成抽奖，不可重复参与';
+    return;
+  }
+  msg.className = 'ok';
+  msg.textContent = '密钥有效，欢迎参加抽奖！';
+  setTimeout(function(){
+    $('screenKey').classList.add('hidden');
+    $('screenDraw').classList.remove('hidden');
+    enterDraw(v);
+  }, 420);
 }
 
 function enterDraw(key){
   currentKey = key;
+  hasDrawn = false;
   var btn = $('btnDraw');
   var note = $('drawNote');
   btn.disabled = false;
   btn.textContent = '去抽奖☞';
-  note.textContent = '公示概率：各奖项按上方列表比例公示；密钥永久有效，可反复抽奖。抽到【再来一次】点击按钮继续抽奖';
+  note.textContent = '本机设备每个密钥仅限完成一次有效抽奖；抽到再来一次可继续转动转盘。';
   $('result').textContent = '';
 }
 
 $('btnDraw').addEventListener('click', runDraw);
 
 function runDraw(){
-  if(spinning) return;
+  if(spinning || hasDrawn) return;
   spinning = true;
   var btn = $('btnDraw');
   var res = $('result');
@@ -431,15 +384,19 @@ function runDraw(){
   var idx = pickIndex();
   spinTo(idx, function(){
     spinning = false;
-    btn.disabled = false;
     var prize = PRIZES[idx];
     if(prize.name === "再来一次"){
       res.textContent = '🎉 抽到【再来一次】';
       btn.textContent = '继续';
-      // 再来一次不播放彩带
+      btn.disabled = false;
+      //再来一次不标记已抽，不写localStorage
     }else{
+      //抽到真实奖品，标记该密钥本机已抽，永久锁定
+      hasDrawn = true;
+      localStorage.setItem('twh_draw_'+currentKey,'1');
       res.textContent = '恭喜您抽中：' + prize.name;
-      btn.textContent = '去抽奖☞';
+      btn.textContent = '抽奖已结束';
+      btn.disabled = true;
       confetti();
     }
   });
