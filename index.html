@@ -31,16 +31,14 @@ body{
   display:flex;align-items:center;justify-content:center;
   padding:22px 14px;
 }
-.screen{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:540px;}
+.screen{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;}
 .hidden{display:none !important;}
 .card{
-  width:100%;
   background:linear-gradient(180deg, var(--panel) 0%, #241b15 100%);
   border:3px solid var(--panel-line);
   border-radius:22px;
   padding:34px 26px 30px;
   box-shadow:0 20px 46px rgba(0,0,0,.55);
-  display:flex;flex-direction:column;align-items:center;gap:16px;
   position:relative;
 }
 .card::before{
@@ -79,7 +77,7 @@ body{
 .ok{color:var(--ok);}
 h2{font-size:21px;line-height:1.75;color:var(--gold);text-align:center;font-weight:800;}
 h2 b{color:#fff;}
-#wheelWrap{position:relative;width:min(430px,94vw);aspect-ratio:1;margin:2px auto 0;}
+#wheelWrap{position:relative;aspect-ratio:1;margin:2px auto 0;}
 #wheel{width:100%;height:100%;display:block;}
 .pointer{
   position:absolute;left:50%;top:-9px;transform:translateX(-50%);
@@ -95,7 +93,7 @@ h2 b{color:#fff;}
   border:4px solid var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.45);z-index:4;
   letter-spacing:2px;
 }
-.legend{width:100%;display:flex;flex-direction:column;gap:7px;margin-top:6px;}
+.legend{display:flex;flex-direction:column;gap:7px;margin-top:6px;}
 .lg-item{
   display:flex;justify-content:space-between;align-items:center;gap:8px;
   background:#2a201b;border:1px solid var(--panel-line);
@@ -113,6 +111,67 @@ h2 b{color:#fff;}
   .btn{transition:none;}
   .confetti{display:none;}
   *{animation:none !important;}
+}
+
+/* ========= 📱手机布局 ≤768px ========= */
+@media screen and (max-width:768px){
+  .screen{max-width:540px;}
+  .card{width:100%;}
+  #screenDraw .card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #wheelWrap{
+    width:min(88vw,420px);
+  }
+  .legend{
+    width:100%;
+  }
+  .lg-item{font-size:13px;padding:7px 12px;}
+}
+
+/* ========= 💻电脑布局 >768px 左右分栏 ========= */
+@media screen and (min-width:769px){
+  .screen{max-width:920px;}
+  .card{width:100%;max-width:900px;}
+  #screenDraw .card{
+    display:grid;
+    grid-template-columns:440px 1fr;
+    grid-template-rows:auto auto auto auto;
+    gap:24px 30px;
+    align-items:start;
+  }
+  #screenDraw h2{
+    grid-column:1 / -1;
+  }
+  #wheelWrap{
+    width:440px;
+    grid-column:1;
+    grid-row:2;
+  }
+  #btnDraw{
+    grid-column:1;
+    grid-row:3;
+  }
+  #result{
+    grid-column:1;
+    grid-row:4;
+  }
+  #drawNote{
+    grid-column:1;
+    grid-row:5;
+  }
+  .legend{
+    grid-column:2;
+    grid-row:2 / 6;
+    width:100%;
+    max-height:520px;
+    overflow-y:auto;
+    padding-right:6px;
+  }
+  .legend::-webkit-scrollbar{width:6px;}
+  .legend::-webkit-scrollbar-thumb{background:#5a4537;border-radius:3px;}
 }
 </style>
 </head>
@@ -162,7 +221,7 @@ var rotation = 0;
 var sectorCenters = [];
 var spinning = false;
 var currentKey = '';
-var hasDrawn = false; //标记该密钥是否已经完成有效抽奖（排除再来一次）
+var hasDrawn = false;
 var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function parsePrize(lines){
@@ -346,7 +405,6 @@ function verifyKey(){
     box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
     return;
   }
-  // 判断本机设备该密钥是否已经抽过
   if(localStorage.getItem('twh_draw_'+v) === '1'){
     msg.className = 'err';
     msg.textContent = '该密钥在此设备已完成抽奖，不可重复参与';
@@ -389,9 +447,7 @@ function runDraw(){
       res.textContent = '🎉 抽到【再来一次】';
       btn.textContent = '继续';
       btn.disabled = false;
-      //再来一次不标记已抽，不写localStorage
     }else{
-      //抽到真实奖品，标记该密钥本机已抽，永久锁定
       hasDrawn = true;
       localStorage.setItem('twh_draw_'+currentKey,'1');
       res.textContent = '恭喜您抽中：' + prize.name;
