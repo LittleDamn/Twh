@@ -1,0 +1,49 @@
+# ====================== 全局抽奖配置 config.txt ======================
+# 等号分隔，井号#开头为注释。数值/布尔会自动转换，文本无需引号。
+
+# 无限次管理员密钥（此密钥不受次数限制、不受衰减，中奖后展示配置；其他密钥为普通密钥）
+adminKey=LittleAAndI
+
+# 实际抽取偏置系数（>1 高概率奖项更易中、大奖更难中；=1 完全按公示概率抽取）
+ACTUAL_BIAS=1.6
+
+# 加权衰减：普通密钥每兑奖 1 次，该密钥本机加权系数 -= decPerDraw（默认0.1）
+# 普通密钥可多次抽奖，次数越多大奖越难中
+decPerDraw=0.1
+# 加权系数最低下限（防止衰减到负数/归零），默认 0.2
+minBias=0.2
+
+# 转盘旋转总时长(ms)
+rotateTime=4200
+# 转盘额外旋转圈数
+rotateLoop=6
+
+# 页面文案
+subtitle=输入您的专属密钥，开启幸运抽奖
+logoTh=系列漫画 · 读者福利
+inputPlaceholder=请输入抽奖密钥
+btnKeyText=验证密钥
+btnDrawText=去抽奖☞
+btnAgainText=继续
+btnDoneText=抽奖已结束
+
+# 提示文案
+msgKeyEmpty=请输入密钥
+msgKeyInvalid=密钥无效，请检查后重试
+msgKeyUsed=该密钥在此设备已完成抽奖，不可重复参与
+msgKeyOk=密钥有效，欢迎参加抽奖！
+textSpinning=转盘转动中…
+textAgain=🎉 抽到【再来一次】
+textWin=恭喜您抽中：
+
+# 弹窗标题与文案（\n 会自动换行）
+titleAgain=再来一次
+textAgainModal=🎉 抽到【再来一次】\n点击继续，重新抽奖
+titleWin=恭喜中奖
+
+# 底部说明
+noteNormal=普通密钥：可多次抽奖，每兑奖一次本机加权系数 -0.1（最低0.2），大奖更难中；再来一次不计次
+noteAdmin=无限测试密钥：可无限次抽奖；每抽一次展示配置
+
+# 是否启用本机兑奖计数与衰减（普通密钥每兑奖一次计数+1、加权系数-0.1）
+enableLocalRecord=true
