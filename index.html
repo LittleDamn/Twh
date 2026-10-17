@@ -31,14 +31,16 @@ body{
   display:flex;align-items:center;justify-content:center;
   padding:22px 14px;
 }
-.screen{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;}
+.screen{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:540px;}
 .hidden{display:none !important;}
 .card{
+  width:100%;
   background:linear-gradient(180deg, var(--panel) 0%, #241b15 100%);
   border:3px solid var(--panel-line);
   border-radius:22px;
   padding:34px 26px 30px;
   box-shadow:0 20px 46px rgba(0,0,0,.55);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
   position:relative;
 }
 .card::before{
@@ -77,7 +79,7 @@ body{
 .ok{color:var(--ok);}
 h2{font-size:21px;line-height:1.75;color:var(--gold);text-align:center;font-weight:800;}
 h2 b{color:#fff;}
-#wheelWrap{position:relative;aspect-ratio:1;margin:2px auto 0;}
+#wheelWrap{position:relative;width:min(430px,94vw);aspect-ratio:1;margin:2px auto 0;}
 #wheel{width:100%;height:100%;display:block;}
 .pointer{
   position:absolute;left:50%;top:-9px;transform:translateX(-50%);
@@ -93,7 +95,7 @@ h2 b{color:#fff;}
   border:4px solid var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.45);z-index:4;
   letter-spacing:2px;
 }
-.legend{display:flex;flex-direction:column;gap:7px;margin-top:6px;}
+.legend{width:100%;display:flex;flex-direction:column;gap:7px;margin-top:6px;}
 .lg-item{
   display:flex;justify-content:space-between;align-items:center;gap:8px;
   background:#2a201b;border:1px solid var(--panel-line);
@@ -112,70 +114,36 @@ h2 b{color:#fff;}
   .confetti{display:none;}
   *{animation:none !important;}
 }
-
-/* ========= 📱手机布局 ≤768px ========= */
-@media screen and (max-width:768px){
-  .screen{max-width:540px;}
-  .card{width:100%;}
-  #screenDraw .card{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-  #wheelWrap{
-    width:min(88vw,420px);
-  }
-  .legend{
-    width:100%;
-  }
-  .lg-item{font-size:13px;padding:7px 12px;}
+/* 结果弹窗（沿用主题配色） */
+.modal-mask{position:fixed;inset:0;background:rgba(20,10,5,.72);display:none;align-items:center;justify-content:center;padding:22px 14px;z-index:100;}
+.modal-mask.show{display:flex;}
+.modal-card{
+  width:100%;max-width:400px;max-height:82vh;overflow:auto;
+  background:linear-gradient(180deg, var(--panel) 0%, #241b15 100%);
+  border:3px solid var(--panel-line);border-radius:22px;
+  padding:26px 22px;box-shadow:0 20px 46px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;
 }
-
-/* ========= 💻电脑布局 >768px 左右分栏 ========= */
-@media screen and (min-width:769px){
-  .screen{max-width:920px;}
-  .card{width:100%;max-width:900px;}
-  #screenDraw .card{
-    display:grid;
-    grid-template-columns:440px 1fr;
-    grid-template-rows:auto auto auto auto;
-    gap:24px 30px;
-    align-items:start;
-  }
-  #screenDraw h2{
-    grid-column:1 / -1;
-  }
-  #wheelWrap{
-    width:440px;
-    grid-column:1;
-    grid-row:2;
-  }
-  #btnDraw{
-    grid-column:1;
-    grid-row:3;
-  }
-  #result{
-    grid-column:1;
-    grid-row:4;
-  }
-  #drawNote{
-    grid-column:1;
-    grid-row:5;
-  }
-  .legend{
-    grid-column:2;
-    grid-row:2 / 6;
-    width:100%;
-    max-height:520px;
-    overflow-y:auto;
-    padding-right:6px;
-  }
-  .legend::-webkit-scrollbar{width:6px;}
-  .legend::-webkit-scrollbar-thumb{background:#5a4537;border-radius:3px;}
+.modal-card h3{font-size:22px;color:var(--gold);font-weight:800;letter-spacing:2px;}
+.modal-card .m-txt{font-size:18px;line-height:1.6;color:var(--ink);white-space:pre-wrap;}
+.config-info{
+  width:100%;text-align:left;background:#1b130d;border:1px dashed var(--panel-line);
+  border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted);
+  max-height:240px;overflow:auto;white-space:pre-wrap;line-height:1.6;
 }
+/* 重置按钮（仅管理员可见） */
+.reset-btn{
+  width:100%;
+  background:#4a1f1f;border:2px solid var(--err);color:#ff9c9c;
+  border-radius:12px;padding:12px 16px;font-size:14px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:filter .2s,transform .08s;
+}
+.reset-btn:hover{filter:brightness(1.15);}
+.reset-btn:active{transform:translateY(2px);}
 </style>
 </head>
 <body>
+<!-- ================= 视图一：密钥校验 ================= -->
 <div id="screenKey" class="screen">
   <div class="card">
     <div class="logo">TWH<span class="th">系列漫画 · 读者福利</span></div>
@@ -188,6 +156,7 @@ h2 b{color:#fff;}
   </div>
 </div>
 
+<!-- ================= 视图二：抽奖转盘 ================= -->
 <div id="screenDraw" class="screen hidden">
   <div class="card">
     <h2>感谢您阅读 <b>TWH 系列漫画</b><br>参与幸运抽奖！</h2>
@@ -200,32 +169,98 @@ h2 b{color:#fff;}
     <div id="result"></div>
     <div id="drawNote"></div>
     <div class="legend" id="legend"></div>
+    <button class="reset-btn hidden" id="resetRecordBtn">重置本机抽奖记录（仅管理员）</button>
+  </div>
+</div>
+
+<!-- ================= 结果弹窗 ================= -->
+<div class="modal-mask" id="modal">
+  <div class="modal-card">
+    <h3 id="mTitle">抽奖结果</h3>
+    <div class="m-txt" id="mText"></div>
+    <div class="config-info" id="configInfo" style="display:none;"></div>
+    <button class="btn" id="modalBtn">确定</button>
   </div>
 </div>
 
 <script>
-var ACTUAL_BIAS = 1.6;
-// 特殊无限次密钥
-var UNLIMITED_KEY = "LittleAAndI";
-
-var KEYS = [];
-var PRIZES = [];
-var ACTUAL = [];
-var DECLARED = 0;
-
+/* ================================================================
+ * 数据来源：config.txt / password.txt / prize.txt（读不到直接报错，无兜底）
+ *   config.txt   —— 全部可配置项（等号分隔，井号注释）
+ *   password.txt —— 每行一个有效密钥
+ *   prize.txt    —— 第一行奖项个数 N；之后每行：奖品名,显示概率%[,实际权重%]
+ *
+ * 核心机制：
+ * 1. 本机兑换计数：localStorage 记录每个密钥在本机已兑奖次数，验证时显示
+ * 2. 加权衰减：普通密钥每兑奖 1 次，该密钥本机加权系数 -= decPerDraw（默认0.1）
+ *    → bias = ACTUAL_BIAS - 本机兑奖次数×decPerDraw，最低不低于 minBias（默认0.2）
+ *    因此普通密钥可多次抽奖，次数越多大奖越难中
+ * 3. 管理员密钥（adminKey）：不受衰减、不受次数限制，可无限抽，中奖展示配置
+ * 4. 重置按钮：仅管理员可见，一键清空本机所有密钥兑奖记录
+ * 5. 特殊奖项「再来一次」：弹窗点继续重抽，不兑奖、不计数、不衰减
+ * 6. 转盘扇区 360/n 均分绘制；实际抽取按动态偏置加权
+ * ================================================================ */
 var $ = function(id){ return document.getElementById(id); };
 var wheel = $('wheel'), ctx = wheel.getContext('2d');
 var CX = wheel.width/2, CY = wheel.height/2, R = wheel.width/2 - 8;
 var TWO_PI = Math.PI*2;
 var PALETTE = ['#e63946','#f77f00','#ffd166','#43aa8b','#4d96ff','#9b5de5','#f94144','#f3722c','#f9c74f','#90be6d','#577590','#f72585'];
 
+var cfg = {};            // 从 config.txt 读取
+var KEYS = [];           // password.txt
+var PRIZES = [];         // prize.txt
+var ACTUAL = [];         // 归一化真实概率
+var DECLARED = 0;
+
 var rotation = 0;
 var sectorCenters = [];
 var spinning = false;
 var currentKey = '';
-var isUnlimitedMode = false;
+var isAdmin = false;
 var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* ---------------- 本机兑奖计数（localStorage） ---------------- */
+function getAllCounts(){
+  try{ return JSON.parse(localStorage.getItem('twh_count') || '{}'); }
+  catch(e){ return {}; }
+}
+function getKeyCount(key){
+  return Number(getAllCounts()[key] || 0);
+}
+function addKeyCount(key){
+  var c = getAllCounts();
+  c[key] = (Number(c[key] || 0)) + 1;
+  localStorage.setItem('twh_count', JSON.stringify(c));
+}
+function resetAllCounts(){
+  localStorage.removeItem('twh_count');
+}
+
+/* ---------------- config.txt 解析 ---------------- */
+function parseIni(text){
+  cfg = {};
+  text.split(/\r?\n/).forEach(function(line){
+    line = line.trim();
+    if(!line || line.charAt(0) === '#') return;
+    var eq = line.indexOf('=');
+    if(eq <= 0) return;
+    var k = line.substring(0,eq).trim();
+    var v = line.substring(eq+1).trim();
+    if(v === 'true') v = true;
+    else if(v === 'false') v = false;
+    else if(!isNaN(Number(v))) v = Number(v);
+    cfg[k] = v;
+  });
+}
+function applyConfigUI(){
+  if(cfg.inputPlaceholder) $('keyInput').placeholder = cfg.inputPlaceholder;
+  if(cfg.btnKeyText) $('btnKey').textContent = cfg.btnKeyText;
+  if(cfg.btnDrawText) $('btnDraw').textContent = cfg.btnDrawText;
+  if(cfg.subtitle) document.querySelector('.subtitle').textContent = cfg.subtitle;
+  if(cfg.logoTh) document.querySelector('.logo .th').textContent = cfg.logoTh;
+}
+
+/* ---------------- prize.txt 解析 ---------------- */
 function parsePrize(lines){
   var arr = [];
   if(lines.length && /^\d+$/.test(lines[0].trim())) DECLARED = parseInt(lines[0].trim(),10);
@@ -248,44 +283,59 @@ function parsePrize(lines){
   return arr;
 }
 
+/* ---------------- 动态偏置系数（含本机衰减） ---------------- */
+function baseBias(){
+  return (typeof cfg.ACTUAL_BIAS === 'number') ? cfg.ACTUAL_BIAS : 1.6;
+}
+function currentBias(){
+  // 管理员固定基础偏置；普通密钥按本机兑奖次数衰减
+  if(isAdmin) return baseBias();
+  var cnt = getKeyCount(currentKey);
+  var b = baseBias() - cnt * (typeof cfg.decPerDraw === 'number' ? cfg.decPerDraw : 0.1);
+  return Math.max(b, (typeof cfg.minBias === 'number' ? cfg.minBias : 0.2));
+}
+/* 归一化真实概率 */
 function buildActual(){
-  ACTUAL = PRIZES.map(function(p){
-    var w = (p.actual != null && !isNaN(p.actual)) ? p.actual : Math.pow(p.prob/100, ACTUAL_BIAS);
-    return Math.max(w, 0);
+  var bias = currentBias();
+  var total = PRIZES.reduce(function(a,p){ return a + p.prob; }, 0) || 100;
+  var raw = PRIZES.map(function(p){
+    if(p.actual != null && !isNaN(p.actual)) return Math.max(p.actual, 0);
+    return Math.pow(p.prob / total, bias);
   });
-  var sum = ACTUAL.reduce(function(a,b){return a+b;},0) || 1;
-  ACTUAL = ACTUAL.map(function(v){return v/sum;});
+  var sum = raw.reduce(function(a,b){ return a+b; }, 0) || 1;
+  ACTUAL = raw.map(function(v){ return v/sum; });
 }
 
+/* ---------------- 数据加载（无兜底，读不到即报错） ---------------- */
 function loadData(){
-  return fetch('password.txt',{cache:'no-store'})
-    .then(function(r1){
-      if(!r1.ok) throw new Error('缺少 password.txt');
-      return r1.text();
-    })
-    .then(function(pw){
-      return fetch('prize.txt',{cache:'no-store'})
-      .then(function(r2){
-        if(!r2.ok) throw new Error('缺少 prize.txt');
-        return r2.text();
-      })
-      .then(function(pr){
-        KEYS = pw.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length;});
-        PRIZES = parsePrize(pr.split(/\r?\n/));
-        if(!KEYS.length || !PRIZES.length) throw new Error('文件内容为空');
-      });
+  return fetch('config.txt',{cache:'no-store'})
+    .then(function(r0){ if(!r0.ok) throw new Error('缺少 config.txt'); return r0.text(); })
+    .then(function(ct){
+      parseIni(ct);
+      applyConfigUI();
+      return fetch('password.txt',{cache:'no-store'})
+        .then(function(r1){ if(!r1.ok) throw new Error('缺少 password.txt'); return r1.text(); })
+        .then(function(pw){
+          return fetch('prize.txt',{cache:'no-store'})
+            .then(function(r2){ if(!r2.ok) throw new Error('缺少 prize.txt'); return r2.text(); })
+            .then(function(pr){
+              KEYS = pw.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length && s.charAt(0)!=='#';});
+              PRIZES = parsePrize(pr.split(/\r?\n/));
+              if(!KEYS.length || !PRIZES.length) throw new Error('文件内容为空');
+            });
+        });
     })
     .catch(function(err){
-      alert("数据加载失败：" + err.message + "\n请确认同目录存在 password.txt 和 prize.txt");
+      alert("数据加载失败：" + err.message + "\n请确认同目录存在 config.txt / password.txt / prize.txt");
       throw err;
     })
     .then(function(){
-      buildActual();
       renderLegend();
       drawWheel();
     });
 }
 
+/* ---------------- 图例（公示概率） ---------------- */
 function renderLegend(){
   var el = $('legend');
   el.innerHTML = '';
@@ -301,18 +351,17 @@ function renderLegend(){
   });
 }
 
+/* ---------------- 转盘绘制（360/n 均分） ---------------- */
 function drawWheel(){
   ctx.clearRect(0,0,wheel.width,wheel.height);
   ctx.save();
   ctx.translate(CX,CY);
   ctx.rotate(rotation);
   ctx.translate(-CX,-CY);
-
   var n = PRIZES.length;
-  var sweep = TWO_PI / n;
+  var sweep = TWO_PI / n;   // 360/n
   var start = 0;
   sectorCenters = [];
-
   PRIZES.forEach(function(p,i){
     ctx.beginPath();
     ctx.moveTo(CX,CY);
@@ -323,10 +372,8 @@ function drawWheel(){
     ctx.strokeStyle = 'rgba(30,18,8,.45)';
     ctx.lineWidth = 3;
     ctx.stroke();
-
     var mid = start + sweep/2;
     sectorCenters.push(mid);
-
     ctx.save();
     ctx.translate(CX,CY);
     ctx.rotate(mid);
@@ -339,10 +386,8 @@ function drawWheel(){
     var short = p.name.length > 8 ? p.name.slice(0,8)+'…' : p.name;
     ctx.fillText(short, R-20, 11);
     ctx.restore();
-
     start += sweep;
   });
-
   ctx.restore();
   ctx.beginPath(); ctx.arc(CX,CY,R+4,0,TWO_PI);
   ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 12; ctx.stroke();
@@ -350,7 +395,9 @@ function drawWheel(){
   ctx.strokeStyle = '#5b3a1e'; ctx.lineWidth = 4; ctx.stroke();
 }
 
+/* ---------------- 真实抽取（动态偏置） ---------------- */
 function pickIndex(){
+  buildActual();
   var r = Math.random(), acc = 0;
   for(var i=0;i<ACTUAL.length;i++){
     acc += ACTUAL[i];
@@ -359,14 +406,17 @@ function pickIndex(){
   return ACTUAL.length-1;
 }
 
+/* ---------------- 转盘动画 ---------------- */
 function spinTo(idx, done){
   var c = sectorCenters[idx];
   var targetMod = ((-Math.PI/2 - c) % TWO_PI + TWO_PI) % TWO_PI;
   var base = ((rotation % TWO_PI) + TWO_PI) % TWO_PI;
   var delta = ((targetMod - base) % TWO_PI + TWO_PI) % TWO_PI;
-  var finalRot = rotation + delta + TWO_PI*(6 + Math.floor(Math.random()*3));
+  var loop = (typeof cfg.rotateLoop === 'number' && cfg.rotateLoop > 0) ? cfg.rotateLoop : 6;
+  var finalRot = rotation + delta + TWO_PI*loop;
   if(reduced){ rotation = finalRot; drawWheel(); done(); return; }
-  var from = rotation, t0 = performance.now(), dur = 4200;
+  var from = rotation, t0 = performance.now();
+  var dur = (typeof cfg.rotateTime === 'number' && cfg.rotateTime > 0) ? cfg.rotateTime : 4200;
   function frame(now){
     var t = Math.min(1,(now-t0)/dur);
     var e = 1 - Math.pow(1-t,3);
@@ -393,36 +443,48 @@ function confetti(){
   }
 }
 
+/* ---------------- 结果弹窗（white-space:pre-wrap 保证 \n 换行生效） ---------------- */
+function showModal(title, text, showConfig, configText){
+  $('mTitle').textContent = title;
+  $('mText').textContent = text;
+  var ci = $('configInfo');
+  if(showConfig){
+    ci.style.display = 'block';
+    ci.textContent = configText;
+  }else{
+    ci.style.display = 'none';
+  }
+  $('modal').classList.add('show');
+}
+function hideModal(){ $('modal').classList.remove('show'); }
+
+/* ---------------- 交互：密钥校验 ---------------- */
 $('btnKey').addEventListener('click', verifyKey);
 $('keyInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') verifyKey(); });
 
 function verifyKey(){
   var v = $('keyInput').value.trim();
   var msg = $('keyMsg');
-  if(!v){ msg.className = 'err'; msg.textContent = '请输入密钥'; return; }
-  if(KEYS.indexOf(v) === -1){
+  if(!v){ msg.className = 'err'; msg.textContent = cfg.msgKeyEmpty || '请输入密钥'; return; }
+  if(KEYS.indexOf(v) !== -1){
+    isAdmin = (cfg.adminKey && v === cfg.adminKey);
+    // 重置按钮仅管理员可见
+    $('resetRecordBtn').classList.toggle('hidden', !isAdmin);
+    var cnt = getKeyCount(v);
+    msg.className = 'ok';
+    msg.textContent = (cfg.msgKeyOk || '密钥有效，欢迎参加抽奖！') + '　本机已兑奖 ' + cnt + ' 次'
+      + (isAdmin ? '' : '　当前系数 ' + currentBias().toFixed(2));
+    setTimeout(function(){
+      $('screenKey').classList.add('hidden');
+      $('screenDraw').classList.remove('hidden');
+      enterDraw(v);
+    }, 420);
+  }else{
     msg.className = 'err';
-    msg.textContent = '密钥无效，请检查后重试';
+    msg.textContent = cfg.msgKeyInvalid || '密钥无效，请检查后重试';
     var box = $('keyInput');
     box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
-    return;
   }
-
-  isUnlimitedMode = (v === UNLIMITED_KEY);
-  // 普通密钥才校验本地已抽奖标记；LittleAAndI跳过限制
-  if(!isUnlimitedMode && localStorage.getItem('twh_draw_'+v) === '1'){
-    msg.className = 'err';
-    msg.textContent = '该密钥在此设备已完成抽奖，不可重复参与';
-    return;
-  }
-
-  msg.className = 'ok';
-  msg.textContent = '密钥有效，欢迎参加抽奖！';
-  setTimeout(function(){
-    $('screenKey').classList.add('hidden');
-    $('screenDraw').classList.remove('hidden');
-    enterDraw(v);
-  }, 420);
 }
 
 function enterDraw(key){
@@ -430,54 +492,87 @@ function enterDraw(key){
   var btn = $('btnDraw');
   var note = $('drawNote');
   btn.disabled = false;
-  btn.textContent = '去抽奖☞';
+  btn.textContent = cfg.btnDrawText || '去抽奖☞';
+  var cnt = getKeyCount(key);
+  var bias = currentBias();
+  note.textContent = (isAdmin
+    ? (cfg.noteAdmin || '无限测试密钥：可无限次抽奖；每抽一次展示配置')
+    : (cfg.noteNormal || '普通密钥：可多次抽奖，每兑奖一次本机加权系数 -0.1（最低0.2），大奖更难中；再来一次不计次'))
+    + '　本机已兑奖 ' + cnt + ' 次 / 当前系数 ' + bias.toFixed(2);
   $('result').textContent = '';
-
-  if(isUnlimitedMode){
-    note.textContent = '🔓无限测试密钥：可无限次抽奖；抽到再来一次可继续转动转盘。';
-  }else{
-    note.textContent = '本机设备每个密钥仅限完成一次有效抽奖；抽到再来一次可继续转动转盘。';
-  }
 }
 
+/* ---------------- 交互：重置记录（仅管理员） ---------------- */
+$('resetRecordBtn').addEventListener('click', function(){
+  if(!isAdmin) return;
+  if(confirm('确定清空本机全部密钥的兑奖记录吗？（仅本机浏览器生效）')){
+    resetAllCounts();
+    enterDraw(currentKey);
+    $('result').textContent = '本机抽奖记录已重置';
+  }
+});
+
+/* ---------------- 交互：抽奖 ---------------- */
 $('btnDraw').addEventListener('click', runDraw);
 
 function runDraw(){
   if(spinning) return;
+  spinning = true;
   var btn = $('btnDraw');
   var res = $('result');
-  // 非无限密钥并且已经抽到过实物奖品，则禁止
-  if(!isUnlimitedMode && btn.disabled) return;
-
-  spinning = true;
   btn.disabled = true;
-  res.textContent = '转盘转动中…';
+  res.textContent = cfg.textSpinning || '转盘转动中…';
   var idx = pickIndex();
   spinTo(idx, function(){
     spinning = false;
+    btn.disabled = false;
     var prize = PRIZES[idx];
-    if(prize.name === "再来一次"){
-      res.textContent = '🎉 抽到【再来一次】';
-      btn.textContent = '继续';
-      btn.disabled = false;
+    if(prize.name === '再来一次'){
+      res.textContent = cfg.textAgain || '🎉 抽到【再来一次】';
+      btn.textContent = cfg.btnAgainText || '继续';
+      showModal(cfg.titleAgain || '再来一次', cfg.textAgainModal || '🎉 抽到【再来一次】\n点击继续，重新抽奖', false);
+      $('modalBtn').onclick = function(){ hideModal(); runDraw(); };
     }else{
-      res.textContent = '恭喜您抽中：' + prize.name;
+      res.textContent = (cfg.textWin || '恭喜您抽中：') + prize.name;
       confetti();
-      if(isUnlimitedMode){
-        //无限密钥：不写localStorage，按钮恢复可继续抽
-        btn.textContent = '去抽奖☞';
-        btn.disabled = false;
+      if(isAdmin){
+        // 管理员：不计数、不衰减，可继续，展示配置
+        btn.textContent = cfg.btnDrawText || '去抽奖☞';
+        var cfgText = generateConfigText();
+        showModal(cfg.titleWin || '恭喜中奖',
+          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n（管理员：本机已兑奖 ' + getKeyCount(currentKey) + ' 次）',
+          true, cfgText);
+        $('modalBtn').onclick = function(){ hideModal(); };
       }else{
-        //普通密钥：标记锁定，按钮禁用
-        localStorage.setItem('twh_draw_'+currentKey,'1');
-        btn.textContent = '抽奖已结束';
-        btn.disabled = true;
+        // 普通密钥：兑奖 +1，系数衰减，可继续抽
+        addKeyCount(currentKey);
+        var ncnt = getKeyCount(currentKey);
+        var nbias = currentBias();
+        btn.textContent = cfg.btnDrawText || '去抽奖☞';
+        showModal(cfg.titleWin || '恭喜中奖',
+          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n本机已兑奖 ' + ncnt + ' 次\n当前加权系数：' + nbias.toFixed(2),
+          false);
+        $('modalBtn').onclick = function(){
+          hideModal();
+          enterDraw(currentKey);
+        };
       }
     }
   });
 }
 
+function generateConfigText(){
+  var s = '# prize.txt 奖品配置\n# 格式：奖品名,显示概率%[,实际权重%]\n# 再来一次 为特殊奖项\n\n当前奖品列表：\n';
+  PRIZES.forEach(function(p){
+    s += (p.name + ',' + p.prob + '%\n');
+  });
+  s += '\n# config.txt 全部配置参数：\n';
+  Object.keys(cfg).forEach(function(k){ s += k + '=' + cfg[k] + '\n'; });
+  s += '\n# password.txt：普通密钥，每行一个';
+  return s;
+}
+
 loadData();
 </script>
-</body>
+<script type="text/javascript" src="/WattToolkit_Inject/1.js"></script></body>
 </html>
