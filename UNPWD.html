@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TWH系列漫画 · 密钥解密验证</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e63946'/%3E%3Cpath d='M32 12l5.2 14.6 15.4.5-12.2 9.4 4.3 14.9L32 42.6 19.3 51.4l4.3-14.9L11.4 27l15.4-.5z' fill='%23ffd166'/%3E%3C/svg%3E">
+<style>
+:root{
+  --red:#e63946;
+  --deep:#241a14;
+  --panel:#2f241d;
+  --panel-line:#5a4537;
+  --gold:#ffd166;
+  --orange:#f77f00;
+  --ink:#fff3e0;
+  --muted:#c9ae97;
+  --ok:#7ce38b;
+  --err:#ff7b7b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 50% -12%, #6b3322 0%, var(--deep) 58%),
+    var(--deep);
+  background-attachment:fixed;
+  color:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  padding:22px 14px;
+}
+.screen{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:540px;}
+.hidden{display:none !important;}
+.card{
+  width:100%;
+  background:linear-gradient(180deg, var(--panel) 0%, #241b15 100%);
+  border:3px solid var(--panel-line);
+  border-radius:22px;
+  padding:34px 26px 30px;
+  box-shadow:0 20px 46px rgba(0,0,0,.55);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  position:relative;
+}
+.card::before{
+  content:"";position:absolute;inset:8px;border:1px dashed rgba(255,209,102,.28);
+  border-radius:16px;pointer-events:none;
+}
+.logo{
+  font-size:40px;font-weight:900;letter-spacing:5px;color:var(--gold);
+  text-shadow:3px 3px 0 var(--red),6px 6px 0 rgba(0,0,0,.4);
+  text-align:center;line-height:1.1;
+}
+.logo .th{display:block;font-size:14px;font-weight:700;letter-spacing:8px;color:#e8c98a;margin-top:10px;text-shadow:none;}
+.subtitle{color:#f2b880;font-size:15px;letter-spacing:2px;text-align:center;}
+.key-box{display:flex;flex-direction:column;gap:12px;margin-top:8px;width:100%;}
+#keyInput{
+  background:#14100c;border:2px solid var(--panel-line);color:#fff;
+  border-radius:13px;padding:14px 16px;font-size:15px;letter-spacing:1px;
+  text-align:center;outline:none;width:100%;
+}
+#keyInput::placeholder{color:#8a7462;letter-spacing:1px;}
+#keyInput:focus{border-color:var(--gold);}
+.btn{
+  background:linear-gradient(180deg, #ffb703 0%, var(--orange) 100%);
+  color:#2a1600;border:none;border-radius:14px;
+  padding:15px 22px;font-size:18px;font-weight:800;font-family:inherit;
+  cursor:pointer;
+  box-shadow:0 6px 0 #b3541e, 0 12px 20px rgba(0,0,0,.35);
+  transition:transform .08s ease, box-shadow .08s ease, filter .2s;
+  width:100%;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b3541e, 0 8px 14px rgba(0,0,0,.3);}
+.btn:disabled{filter:grayscale(.75);cursor:not-allowed;opacity:.75;}
+#keyMsg{margin-top:2px;font-size:14px;min-height:20px;text-align:center;}
+.err{color:var(--err);}
+.ok{color:var(--ok);}
+.result-card{
+  width:100%;background:#241b16;border:1px dashed var(--panel-line);
+  border-radius:14px;padding:18px 18px;display:none;flex-direction:column;gap:12px;
+}
+.result-card.show{display:flex;}
+.r-title{font-size:18px;font-weight:800;text-align:center;letter-spacing:1px;}
+.r-title.ok{color:var(--ok);}
+.r-title.err{color:var(--err);}
+.r-item{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  background:#2a201b;border:1px solid var(--panel-line);
+  border-radius:10px;padding:9px 14px;font-size:14px;
+}
+.r-item .k{color:var(--muted);}
+.r-item .v{color:var(--gold);font-weight:800;word-break:break-all;text-align:right;}
+.note{font-size:12px;color:var(--muted);text-align:center;line-height:1.7;}
+details{
+  width:100%;background:#241b16;border:1px dashed var(--panel-line);
+  border-radius:12px;padding:10px 14px;font-size:13px;color:var(--muted);
+}
+summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
+.rule-item{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:13px;border-bottom:1px dashed rgba(255,209,102,.15);}
+.rule-item:last-child{border-bottom:none;}
+.rule-item .p{color:var(--gold);font-weight:700;}
+.shake{animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}50%{transform:translateX(9px)}75%{transform:translateX(-5px)}}
+</style>
+</head>
+<body>
+<!-- ================= 密钥解密验证 ================= -->
+<div id="screenVerify" class="screen">
+  <div class="card">
+    <div class="logo">TWH<span class="th">密钥解密 · 验证程序</span></div>
+    <div class="subtitle">输入中奖兑换密钥，解密并验证是否有效</div>
+    <div class="key-box">
+      <input id="keyInput" placeholder="粘贴 / 输入兑换密钥" autocomplete="off" spellcheck="false">
+      <button class="btn" id="btnVerify">解密密钥</button>
+      <div id="keyMsg"></div>
+    </div>
+    <div class="result-card" id="resultCard">
+      <div class="r-title" id="rTitle">—</div>
+      <div class="r-item"><span class="k">奖项</span><span class="v" id="rPrize">—</span></div>
+      <div class="r-item"><span class="k">中奖日期</span><span class="v" id="rDate">—</span></div>
+      <div class="r-item"><span class="k">设备码</span><span class="v" id="rDevice">—</span></div>
+      <div class="r-item"><span class="k">校验码</span><span class="v" id="rCheck">—</span></div>
+    </div>
+    <details>
+      <summary>奖项前缀规则（管理员查看）</summary>
+      <div class="note">前缀码 = 从奖项名开头逐位取字符，首字母相同则取下一位，直到所有奖项各不相同</div>
+      <div id="ruleList" style="margin-top:6px;"></div>
+    </details>
+  </div>
+</div>
+<script>
+/* ================================================================
+ * TWH 密钥解密验证程序
+ * 数据来源：prize.txt（读不到直接报错，无兜底）
+ *
+ * 密钥格式：X(奖项唯一前缀码) + YYMMDD(6位日期) + CCCCCC(6位设备码) + VV(2位校验码)
+ * 校验逻辑：
+ *   1. 用唯一前缀码匹配出对应奖项
+ *   2. 校验码 VV 由 calcCheck(X, YYMMDD, CCCCCC) 计算
+ *   3. VV 匹配 → 密钥有效；否则无效
+ * ================================================================ */
+var $ = function(id){ return document.getElementById(id); };
+var PRIZES = [];
+
+/* ---- 奖项唯一前缀码（与 index.html 规则一致） ---- */
+function getPrizeCode(name){
+  var names = PRIZES.map(function(p){ return p.name; });
+  var len = 1;
+  while(len <= name.length){
+    var pre = name.slice(0, len);
+    var cnt = 0;
+    for(var i=0;i<names.length;i++){ if(names[i].slice(0, len) === pre) cnt++; }
+    if(cnt === 1) return pre;
+    len++;
+  }
+  return name;
+}
+
+/* ---- 校验码计算（与 index.html 一致） ---- */
+var KEYCHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function calcCheck(x, yymmdd, cc){
+  var s = x + yymmdd + cc;
+  var sum = 0;
+  for(var i=0;i<s.length;i++) sum += s.charCodeAt(i);
+  var a = sum % 36;
+  var b = Math.floor(sum / 36) % 36;
+  return KEYCHARS.charAt(a) + KEYCHARS.charAt(b);
+}
+
+/* ---- 解析 prize.txt ---- */
+function parsePrize(lines){
+  var arr = [];
+  for(var i=1;i<lines.length;i++){
+    var line = lines[i].trim();
+    if(!line || line.charAt(0)==='#') continue;
+    line = line.replace(/^\d+\s*[\.、)]\s*/, '');
+    var parts = line.split(/[,，:：]\s*/);
+    if(parts.length < 2) continue;
+    var name = parts[0].trim();
+    if(!name) continue;
+    arr.push({name:name, prob:parseFloat(parts[1])});
+  }
+  return arr;
+}
+
+function loadData(){
+  return fetch('prize.txt',{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('缺少 prize.txt'); return r.text(); })
+    .then(function(t){
+      PRIZES = parsePrize(t.split(/\r?\n/));
+      if(!PRIZES.length) throw new Error('prize.txt 内容为空');
+      renderRuleList();
+    })
+    .catch(function(err){
+      alert("数据加载失败：" + err.message + "\n请确认同目录存在 prize.txt");
+      throw err;
+    });
+}
+
+function renderRuleList(){
+  var el = $('ruleList');
+  el.innerHTML = '';
+  PRIZES.forEach(function(p){
+    var row = document.createElement('div');
+    row.className = 'rule-item';
+    var nm = document.createElement('span');
+    nm.className = 'k'; nm.textContent = p.name;
+    var cd = document.createElement('span');
+    cd.className = 'p'; cd.textContent = getPrizeCode(p.name);
+    row.appendChild(nm); row.appendChild(cd);
+    el.appendChild(row);
+  });
+}
+
+function parseDate(yymmdd){
+  if(!/^\d{6}$/.test(yymmdd)) return '无法解析';
+  var yy = 2000 + parseInt(yymmdd.slice(0,2),10);
+  var mm = yymmdd.slice(2,4);
+  var dd = yymmdd.slice(4,6);
+  return yy + '年' + mm + '月' + dd + '日';
+}
+
+/* ---- 解密并验证密钥 ---- */
+function verifyKey(raw){
+  var key = raw.trim();
+  // 尝试用唯一前缀码匹配（选最长的匹配前缀）
+  var matched = null, matchedCode = null;
+  PRIZES.forEach(function(p){
+    var code = getPrizeCode(p.name);
+    if(key.slice(0, code.length) === code && (!matchedCode || code.length > matchedCode.length)){
+      matched = p;
+      matchedCode = code;
+    }
+  });
+  if(!matched) return {ok:false, msg:'无法匹配奖项前缀，密钥格式无效'};
+  var rest = key.slice(matchedCode.length);
+  if(rest.length !== 14) return {ok:false, msg:'密钥长度不正确（期望 6位日期+6位设备码+2位校验码）'};
+  var yymmdd = rest.slice(0,6);
+  var cc = rest.slice(6,12);
+  var vv = rest.slice(12,14);
+  var calc = calcCheck(matchedCode, yymmdd, cc);
+  return {
+    ok: (calc === vv),
+    prize: matched.name,
+    date: yymmdd,
+    dateText: parseDate(yymmdd),
+    device: cc,
+    check: vv,
+    calc: calc
+  };
+}
+
+function showResult(res){
+  var card = $('resultCard');
+  var title = $('rTitle');
+  card.classList.add('show');
+  if(res.ok){
+    title.className = 'r-title ok';
+    title.textContent = '✓ 密钥有效';
+    $('rPrize').textContent = res.prize;
+    $('rDate').textContent = res.dateText + '（' + res.date + '）';
+    $('rDevice').textContent = res.device;
+    $('rCheck').textContent = res.check;
+  }else{
+    title.className = 'r-title err';
+    title.textContent = '✗ 密钥无效';
+    $('rPrize').textContent = res.prize || '—';
+    $('rDate').textContent = '—';
+    $('rDevice').textContent = '—';
+    $('rCheck').textContent = '—';
+  }
+}
+
+$('btnVerify').addEventListener('click', function(){
+  var v = $('keyInput').value;
+  var msg = $('keyMsg');
+  if(!v.trim()){ msg.className = 'err'; msg.textContent = '请输入密钥'; shake(); return; }
+  var res = verifyKey(v);
+  if(res.ok){
+    msg.className = 'ok';
+    msg.textContent = '密钥有效，对应奖项：' + res.prize;
+  }else{
+    msg.className = 'err';
+    msg.textContent = res.msg || '密钥无效';
+    shake();
+  }
+  showResult(res);
+});
+$('keyInput').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('btnVerify').click(); });
+function shake(){
+  var box = $('keyInput');
+  box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+}
+
+loadData();
+</script>
+</body>
+</html>
