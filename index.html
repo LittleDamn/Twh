@@ -494,8 +494,64 @@ function getDeviceInfo(){
   return detail;
 }
 
-/* ---------------- 生成中奖二维码（含中奖信息/时间/奖品/设备等） ---------------- */
-function makePrizeQR(key, prizeName){
+/* ---------------- 奖项唯一前缀码 ----------------
+ * 规则：从奖项名称开头逐位取字符，首字母相同则取下一位，直到所有奖项前缀各不相同
+ * 例：TWH全册漫画/TWH卡包*1/TWH卡包*2 → TWH全 / TWH卡包*1 / TWH卡包*2
+ * 该规则须与 UNPWD.html 保持一致 */
+function getPrizeCode(name){
+  var names = PRIZES.map(function(p){ return p.name; });
+  var len = 1;
+  while(len <= name.length){
+    var pre = name.slice(0, len);
+    var cnt = 0;
+    for(var i=0;i<names.length;i++){ if(names[i].slice(0, len) === pre) cnt++; }
+    if(cnt === 1) return pre;
+    len++;
+  }
+  return name;
+}
+
+/* ---------------- 校验码（验证码） ----------------
+ * 根据 奖项前缀码+日期+设备码 计算 2 位校验码，用于 UNPWD 验证密钥有效 */
+var KEYCHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function calcCheck(x, yymmdd, cc){
+  var s = x + yymmdd + cc;
+  var sum = 0;
+  for(var i=0;i<s.length;i++) sum += s.charCodeAt(i);
+  var a = sum % 36;
+  var b = Math.floor(sum / 36) % 36;
+  return KEYCHARS.charAt(a) + KEYCHARS.charAt(b);
+}
+
+/* ---------------- 后台生成兑换密钥 ----------------
+ * 格式：X(奖项唯一前缀码) + YYMMDD + CCCCCC(6位设备码) + VV(2位校验码)
+ * 例：TWH全册漫画 → TWH全251025A3K9Q2X7
+ * CCCCCC 从设备信息字符池中随机取 6 位（体现设备来源，且每次唯一）
+ * VV 为校验码，由 calcCheck 生成，供 UNPWD.html 验证密钥有效 */
+function makePrizeKey(prizeName){
+  function pad(n){ return n < 10 ? '0'+n : ''+n; }
+  var now = new Date();
+  var x = getPrizeCode(prizeName || '');
+  var yymmdd = pad(now.getFullYear() % 100) + pad(now.getMonth()+1) + pad(now.getDate());
+  var dev = getDeviceInfo();
+  var chars = '';
+  for(var i=0;i<dev.length;i++){
+    var c = dev.charAt(i);
+    if(/[0-9A-Za-z]/.test(c)) chars += c.toUpperCase();
+  }
+  if(chars.length < 6) chars += 'TWHABC123';
+  var seed = (Date.now() + Math.floor(Math.random() * 1e9)).toString(36);
+  var cc = '';
+  for(var j=0;j<6;j++){
+    var idx = (seed.charCodeAt(seed.length - 1 - j) + j * 7) % chars.length;
+    cc += chars.charAt(idx);
+  }
+  var vv = calcCheck(x, yymmdd, cc);
+  return x + yymmdd + cc + vv;
+}
+
+/* ---------------- 生成中奖二维码（内容含兑换密钥/时间/奖品/设备等） ---------------- */
+function makePrizeQR(prizeKey, prizeName){
   var now = new Date();
   function pad(n){ return n < 10 ? '0'+n : ''+n; }
   var timeStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
@@ -503,11 +559,11 @@ function makePrizeQR(key, prizeName){
   var dev = getDeviceInfo();
   var content =
     'TWH幸运抽奖中奖凭证\n' +
-    '密钥：' + key + '\n' +
+    '兑换密钥：' + prizeKey + '\n' +
     '奖品：' + prizeName + '\n' +
     '中奖时间：' + timeStr + '\n' +
     '设备型号：' + dev + '\n' +
-    '本机兑奖次数：' + getKeyCount(key) + '\n' +
+    '本机兑奖次数：' + getKeyCount(currentKey) + '\n' +
     '来源：TWH系列漫画读者福利';
   var cv = $('qrCanvas');
   var ctx2 = cv.getContext('2d');
@@ -617,16 +673,34 @@ function runDraw(){
       btn.textContent = cfg.btnAgainText || '继续';
       showModal(cfg.titleAgain || '再来一次', cfg.textAgainModal || '🎉 抽到【再来一次】\n点击继续，重新抽奖', false);
       $('modalBtn').onclick = function(){ hideModal(); runDraw(); };
+    }else if(prize.name === '谢谢支持'){
+      // 谢谢支持：不生成兑换密钥、不生成二维码
+      res.textContent = prize.name;
+      btn.textContent = cfg.btnDrawText || '去抽奖☞';
+      if(isAdmin){
+        showModal(cfg.titleThanks || '谢谢支持', (cfg.textThanks || '感谢您的参与，谢谢支持！') + '\n（管理员：本机已兑奖 ' + getKeyCount(currentKey) + ' 次）', false);
+      }else{
+        addKeyCount(currentKey);
+        var ncnt2 = getKeyCount(currentKey);
+        var nbias2 = currentBias();
+        showModal(cfg.titleThanks || '谢谢支持', (cfg.textThanks || '感谢您的参与，谢谢支持！') + '\n本机已兑奖 ' + ncnt2 + ' 次\n当前加权系数：' + nbias2.toFixed(2), false);
+      }
+      $('modalBtn').onclick = function(){
+        hideModal();
+        if(!isAdmin) enterDraw(currentKey);
+      };
     }else{
       res.textContent = (cfg.textWin || '恭喜您抽中：') + prize.name;
       confetti();
+      // 后台生成兑换密钥，密钥转二维码（不含谢谢支持）
+      var prizeKey = makePrizeKey(prize.name);
       if(isAdmin){
         // 管理员：不计数、不衰减，可继续，展示配置
         btn.textContent = cfg.btnDrawText || '去抽奖☞';
         var cfgText = generateConfigText();
-        makePrizeQR(currentKey, prize.name);
+        makePrizeQR(prizeKey, prize.name);
         showModal(cfg.titleWin || '恭喜中奖',
-          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n（管理员：本机已兑奖 ' + getKeyCount(currentKey) + ' 次）',
+          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n兑换密钥：' + prizeKey + '\n（管理员：本机已兑奖 ' + getKeyCount(currentKey) + ' 次）',
           true, cfgText);
         $('modalBtn').onclick = function(){ hideModal(); };
       }else{
@@ -635,9 +709,9 @@ function runDraw(){
         var ncnt = getKeyCount(currentKey);
         var nbias = currentBias();
         btn.textContent = cfg.btnDrawText || '去抽奖☞';
-        makePrizeQR(currentKey, prize.name);
+        makePrizeQR(prizeKey, prize.name);
         showModal(cfg.titleWin || '恭喜中奖',
-          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n本机已兑奖 ' + ncnt + ' 次\n当前加权系数：' + nbias.toFixed(2),
+          (cfg.textWin || '恭喜您抽中：') + prize.name + '\n兑换密钥：' + prizeKey + '\n本机已兑奖 ' + ncnt + ' 次\n当前加权系数：' + nbias.toFixed(2),
           false);
         $('modalBtn').onclick = function(){
           hideModal();
