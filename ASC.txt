@@ -1,0 +1,41 @@
+# ====================== TWH 设备码对照表 ASC.txt ======================
+# 设备码(6位) = 厂商码(1) + 浏览器码(1) + 型号码(2) + 序号(2)
+# 例：AC01X7 = Apple / Chrome / iPhone系列 / 序号X7
+# 供 index.html 生成设备码、UNPWD.html 解密还原设备信息
+# 等号分隔；# 开头为注释；段落标题仅供阅读
+#
+# ---------------- 厂商码（1位） ----------------
+A=Apple(苹果)
+M=Mac(苹果电脑)
+W=Windows/PC(电脑)
+X=Xiaomi/Redmi(小米/红米)
+H=Huawei/Honor(华为/荣耀)
+O=OPPO(欧珀)
+V=vivo(维沃)
+S=Samsung(三星)
+L=Linux(其他Linux)
+U=Unknown(未知/其他)
+#
+# ---------------- 浏览器码（1位） ----------------
+C=Chrome(谷歌浏览器)
+E=Edge(微软浏览器)
+F=Firefox(火狐)
+S=Safari(苹果浏览器)
+O=Opera(欧朋)
+U=Unknown(未知/其他)
+#
+# ---------------- 型号码（2位） ----------------
+00=Unknown(未知型号)
+01=iPhone系列(苹果手机)
+02=iPad系列(苹果平板)
+03=Redmi系列(红米)
+04=小米系列(Xiaomi)
+05=华为P/Mate/Nova系列
+06=荣耀系列(Honor)
+07=OPPO系列(含一加/真我)
+08=vivo系列(iQOO)
+09=三星Galaxy系列
+10=MacBook(苹果笔记本)
+11=Mac/iMac(苹果台式)
+12=Windows桌面/笔记本
+13=Android通用(其他安卓)
