@@ -582,47 +582,14 @@ function makePrizeKey(prizeName){
 }
 
 /* ---------------- 生成中奖二维码（内容含兑换密钥/时间/奖品/设备等） ---------------- */
-function makePrizeQR(prizeKey, prizeName){
-  var now = new Date();
-  function pad(n){ return n < 10 ? '0'+n : ''+n; }
-  var timeStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate())
-    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
-  var dev = getDeviceInfo();
-  var content =
-    'TWH幸运抽奖中奖凭证\n' +
-    '兑换密钥：' + prizeKey + '\n' +
-    '奖品：' + prizeName + '\n' +
-    '中奖时间：' + timeStr + '\n' +
-    '设备型号：' + dev + '\n' +
-    '本机兑奖次数：' + getKeyCount(currentKey) + '\n' +
-    '来源：TWH系列漫画读者福利';
-  var cv = $('qrCanvas');
-  var ctx2 = cv.getContext('2d');
-  var wrap = $('qrWrap');
-  if(typeof qrcode !== 'function'){ wrap.style.display = 'none'; $('qrInfo').textContent = ''; return; }
-  var qr;
-  try{
-    qr = qrcode(0, 'M');
-    qr.addData(content, 'Byte');
+function makePrizeQR(keyText) {
+    // 二维码仅写入纯净密钥，不带中文、特殊符号
+    const qrData = keyText.trim();
+    const qr = qrcode(0, 'M');
+    qr.addData(qrData);
     qr.make();
-  }catch(e){
-    wrap.style.display = 'none'; $('qrInfo').textContent = '二维码生成失败'; return;
-  }
-  var N = qr.getModuleCount();
-  var size = 260, pad2 = 12;
-  var cell = Math.floor((size - pad2*2) / N);
-  cv.width = size; cv.height = size;
-  ctx2.fillStyle = '#ffffff';
-  ctx2.fillRect(0, 0, size, size);
-  ctx2.fillStyle = '#000000';
-  var off = Math.floor((size - cell*N) / 2);
-  for(var r=0; r<N; r++){
-    for(var c=0; c<N; c++){
-      if(qr.isDark(r, c)) ctx2.fillRect(off + c*cell, off + r*cell, cell, cell);
-    }
-  }
-  wrap.style.display = 'flex';
-  $('qrInfo').textContent = '扫码查看中奖信息 · 时间·奖品·设备';
+    const qrDiv = document.getElementById('qrBox');
+    qrDiv.innerHTML = qr.createImgTag(5);
 }
 
 function hideModal(){
