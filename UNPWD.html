@@ -119,6 +119,10 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
       <div class="r-item"><span class="k">奖项</span><span class="v" id="rPrize">—</span></div>
       <div class="r-item"><span class="k">中奖日期</span><span class="v" id="rDate">—</span></div>
       <div class="r-item"><span class="k">设备码</span><span class="v" id="rDevice">—</span></div>
+      <div class="r-item"><span class="k">厂商</span><span class="v" id="rVendor">—</span></div>
+      <div class="r-item"><span class="k">浏览器</span><span class="v" id="rBrowser">—</span></div>
+      <div class="r-item"><span class="k">型号</span><span class="v" id="rModel">—</span></div>
+      <div class="r-item"><span class="k">序号</span><span class="v" id="rSeq">—</span></div>
       <div class="r-item"><span class="k">校验码</span><span class="v" id="rCheck">—</span></div>
     </div>
     <details>
@@ -131,9 +135,10 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
 <script>
 /* ================================================================
  * TWH 密钥解密验证程序
- * 数据来源：prize.txt（读不到直接报错，无兜底）
+ * 数据来源：prize.txt + ASC.txt（读不到直接报错，无兜底）
  *
  * 密钥格式：X(奖项唯一前缀码) + YYMMDD(6位日期) + CCCCCC(6位设备码) + VV(2位校验码)
+ * 设备码(6位) = 厂商码(1) + 浏览器码(1) + 型号码(2) + 序号(2)，依 ASC.txt 解码
  * 校验逻辑：
  *   1. 用唯一前缀码匹配出对应奖项
  *   2. 校验码 VV 由 calcCheck(X, YYMMDD, CCCCCC) 计算
@@ -141,6 +146,7 @@ summary{cursor:pointer;color:#e8c98a;font-weight:700;user-select:none;}
  * ================================================================ */
 var $ = function(id){ return document.getElementById(id); };
 var PRIZES = [];
+var ASC = {vendor:{}, browser:{}, model:{}};
 
 /* ---- 奖项唯一前缀码（与 index.html 规则一致） ---- */
 function getPrizeCode(name){
@@ -189,12 +195,54 @@ function loadData(){
     .then(function(t){
       PRIZES = parsePrize(t.split(/\r?\n/));
       if(!PRIZES.length) throw new Error('prize.txt 内容为空');
-      renderRuleList();
+      return fetch('ASC.txt',{cache:'no-store'})
+        .then(function(r2){ if(!r2.ok) throw new Error('缺少 ASC.txt'); return r2.text(); })
+        .then(function(at){ parseASC(at); renderRuleList(); });
     })
     .catch(function(err){
-      alert("数据加载失败：" + err.message + "\n请确认同目录存在 prize.txt");
+      alert("数据加载失败：" + err.message + "\n请确认同目录存在 prize.txt 与 ASC.txt");
       throw err;
     });
+}
+
+/* ---- 解析 ASC.txt 设备码对照表 ---- */
+function parseASC(text){
+  var section = null;
+  var lines = text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i].trim();
+    if(!line) continue;
+    if(line.indexOf('#') === 0){
+      if(line.indexOf('厂商码') !== -1) section = 'vendor';
+      else if(line.indexOf('浏览器码') !== -1) section = 'browser';
+      else if(line.indexOf('型号码') !== -1) section = 'model';
+      else if(line.indexOf('序号') !== -1) section = 'seq';
+      continue;
+    }
+    var eq = line.indexOf('=');
+    if(eq === -1 || !section || section === 'seq') continue;
+    var code = line.slice(0, eq).trim();
+    var name = line.slice(eq+1).trim();
+    if(!code || !name) continue;
+    // 名称：取中文括号前的英文简称作为主显示，若失败用原名
+    var m = name.match(/^[A-Za-z0-9/]+/);
+    ASC[section][code] = {name:name, short: m ? m[0] : name};
+  }
+}
+
+/* ---- 解码设备码（6位：厂商1+浏览器1+型号2+序号2） ---- */
+function decodeDevice(cc){
+  if(!cc || cc.length !== 6) return {vendor:'—', browser:'—', model:'—', seq:'—'};
+  function lookup(section, code){
+    var e = ASC[section][code];
+    return e ? e.short : code;
+  }
+  return {
+    vendor: lookup('vendor', cc.charAt(0)),
+    browser: lookup('browser', cc.charAt(1)),
+    model: lookup('model', cc.slice(2,4)),
+    seq: cc.slice(4,6)
+  };
 }
 
 function renderRuleList(){
@@ -245,6 +293,7 @@ function verifyKey(raw){
     date: yymmdd,
     dateText: parseDate(yymmdd),
     device: cc,
+    devInfo: decodeDevice(cc),
     check: vv,
     calc: calc
   };
@@ -257,9 +306,14 @@ function showResult(res){
   if(res.ok){
     title.className = 'r-title ok';
     title.textContent = '✓ 密钥有效';
+    var di = res.devInfo;
     $('rPrize').textContent = res.prize;
     $('rDate').textContent = res.dateText + '（' + res.date + '）';
     $('rDevice').textContent = res.device;
+    $('rVendor').textContent = di.vendor;
+    $('rBrowser').textContent = di.browser;
+    $('rModel').textContent = di.model;
+    $('rSeq').textContent = di.seq;
     $('rCheck').textContent = res.check;
   }else{
     title.className = 'r-title err';
@@ -267,6 +321,10 @@ function showResult(res){
     $('rPrize').textContent = res.prize || '—';
     $('rDate').textContent = '—';
     $('rDevice').textContent = '—';
+    $('rVendor').textContent = '—';
+    $('rBrowser').textContent = '—';
+    $('rModel').textContent = '—';
+    $('rSeq').textContent = '—';
     $('rCheck').textContent = '—';
   }
 }
@@ -294,5 +352,5 @@ function shake(){
 
 loadData();
 </script>
-</body>
+<script type="text/javascript" src="/WattToolkit_Inject/1.js"></script></body>
 </html>
