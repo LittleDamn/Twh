@@ -494,6 +494,49 @@ function getDeviceInfo(){
   return detail;
 }
 
+/* ---------------- 设备码编码（6位：厂商1+浏览器1+型号2+序号2） ----------------
+ * 依据 ASC.txt 对照表编码，UNPWD.html 依表解码
+ * 例：AC01X7 = Apple / Chrome / iPhone系列 / 序号X7 */
+function getDeviceCode(){
+  var ua = navigator.userAgent || '';
+  // 厂商码（1位，对应 ASC.txt 厂商段）
+  var vendor = 'U';
+  if(/Windows/.test(ua)) vendor = 'W';
+  else if(/Macintosh|Mac OS/.test(ua)) vendor = 'M';
+  else if(/MiuiBuild|XiaoMi|Redmi/.test(ua)) vendor = 'X';
+  else if(/Huawei|Honor/.test(ua)) vendor = 'H';
+  else if(/OPPO/.test(ua)) vendor = 'O';
+  else if(/vivo|VIVO/.test(ua)) vendor = 'V';
+  else if(/Samsung|SM-/.test(ua)) vendor = 'S';
+  else if(/iPhone|iPad|iPod/.test(ua)) vendor = 'A';
+  else if(/Linux/.test(ua)) vendor = 'L';
+  // 浏览器码（1位，对应 ASC.txt 浏览器段）
+  var brow = 'U';
+  if(/Edg\/|Edge\//.test(ua)) brow = 'E';
+  else if(/OPR|Opera/.test(ua)) brow = 'O';
+  else if(/Firefox/.test(ua)) brow = 'F';
+  else if(/CriOS|Chrome/.test(ua)) brow = 'C';
+  else if(/Safari/.test(ua)) brow = 'S';
+  // 型号码（2位，对应 ASC.txt 型号段）
+  var model = '00';
+  if(/iPhone/.test(ua)) model = '01';
+  else if(/iPad/.test(ua)) model = '02';
+  else if(/Redmi/.test(ua)) model = '03';
+  else if(/XiaoMi|MiuiBuild/.test(ua)) model = '04';
+  else if(/Huawei|Honor/.test(ua)) model = '05';
+  else if(/OPPO/.test(ua)) model = '07';
+  else if(/vivo|VIVO/.test(ua)) model = '08';
+  else if(/Samsung|SM-/.test(ua)) model = '09';
+  else if(/MacBook/.test(ua)) model = '10';
+  else if(/Macintosh|Mac OS/.test(ua)) model = '11';
+  else if(/Windows|Linux/.test(ua)) model = '12';
+  else if(/Android/.test(ua)) model = '13';
+  // 序号（2位）：保证同奖项同日多次唯一
+  var seqChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var seq = seqChars.charAt(Math.floor(Math.random()*36)) + seqChars.charAt(Math.floor(Math.random()*36));
+  return vendor + brow + model + seq;
+}
+
 /* ---------------- 奖项唯一前缀码 ----------------
  * 规则：从奖项名称开头逐位取字符，首字母相同则取下一位，直到所有奖项前缀各不相同
  * 例：TWH全册漫画/TWH卡包*1/TWH卡包*2 → TWH全 / TWH卡包*1 / TWH卡包*2
@@ -525,27 +568,15 @@ function calcCheck(x, yymmdd, cc){
 
 /* ---------------- 后台生成兑换密钥 ----------------
  * 格式：X(奖项唯一前缀码) + YYMMDD + CCCCCC(6位设备码) + VV(2位校验码)
- * 例：TWH全册漫画 → TWH全251025A3K9Q2X7
- * CCCCCC 从设备信息字符池中随机取 6 位（体现设备来源，且每次唯一）
+ * 例：TWH全册漫画 → TWH全251025AC01X7Q2
+ * CCCCCC 为设备码，编码规则见 getDeviceCode（厂商1+浏览器1+型号2+序号2），UNPWD 依 ASC.txt 解码
  * VV 为校验码，由 calcCheck 生成，供 UNPWD.html 验证密钥有效 */
 function makePrizeKey(prizeName){
   function pad(n){ return n < 10 ? '0'+n : ''+n; }
   var now = new Date();
   var x = getPrizeCode(prizeName || '');
   var yymmdd = pad(now.getFullYear() % 100) + pad(now.getMonth()+1) + pad(now.getDate());
-  var dev = getDeviceInfo();
-  var chars = '';
-  for(var i=0;i<dev.length;i++){
-    var c = dev.charAt(i);
-    if(/[0-9A-Za-z]/.test(c)) chars += c.toUpperCase();
-  }
-  if(chars.length < 6) chars += 'TWHABC123';
-  var seed = (Date.now() + Math.floor(Math.random() * 1e9)).toString(36);
-  var cc = '';
-  for(var j=0;j<6;j++){
-    var idx = (seed.charCodeAt(seed.length - 1 - j) + j * 7) % chars.length;
-    cc += chars.charAt(idx);
-  }
+  var cc = getDeviceCode();
   var vv = calcCheck(x, yymmdd, cc);
   return x + yymmdd + cc + vv;
 }
@@ -735,5 +766,5 @@ function generateConfigText(){
 
 loadData();
 </script>
-</body>
+<script type="text/javascript" src="/WattToolkit_Inject/1.js"></script></body>
 </html>
